@@ -1,0 +1,69 @@
+@page {
+  size: letter;
+  margin: 1in 1.25in;
+}
+
+body {
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: 11pt;
+  line-height: 1.7;
+  color: #2c2c2c;
+}
+
+h1 {
+  font-family: "Helvetica Neue", "Arial", sans-serif;
+  font-size: 22pt;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 0.8em;
+  letter-spacing: -0.3px;
+}
+
+h2 {
+  font-family: "Helvetica Neue", "Arial", sans-serif;
+  font-size: 14pt;
+  font-weight: 600;
+  color: #333;
+  margin-top: 1.8em;
+  margin-bottom: 0.6em;
+  padding-bottom: 0.3em;
+  border-bottom: 1.5px solid #ddd;
+}
+
+h3 {
+  font-family: "Helvetica Neue", "Arial", sans-serif;
+  font-size: 12pt;
+  font-weight: 600;
+  color: #444;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+
+p {
+  margin: 0.6em 0;
+}
+
+strong {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+blockquote {
+  border-left: 3px solid #b8b8b8;
+  padding-left: 1.2em;
+  margin: 1em 0 1em 0.2em;
+  color: #444;
+  font-style: italic;
+}
+
+blockquote p {
+  margin: 0.3em 0;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 1.8em 0;
+}
