@@ -1,6 +1,6 @@
 package main
 
-import "pdf/cmd"
+import "github.com/tituscheng/pdf/cmd"
 
 func main() {
 	cmd.Execute()

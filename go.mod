@@ -1,4 +1,4 @@
-module pdf
+module github.com/tituscheng/pdf
 
 go 1.26.2
 

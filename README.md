@@ -109,7 +109,7 @@ import (
     "context"
     "log"
 
-    "pdf/pkg/convert"
+    "github.com/tituscheng/pdf/pkg/convert"
 )
 
 func main() {
@@ -183,7 +183,7 @@ if errors.Is(err, convert.ErrUnsupportedFormat) {
 ### Register a custom converter
 
 ```go
-import "pdf/pkg/convert"
+import "github.com/tituscheng/pdf/pkg/convert"
 
 type MyConverter struct{}
 

@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"sort"
 
-	"pdf/internal/cli"
-	"pdf/pkg/convert"
+	"github.com/tituscheng/pdf/internal/cli"
+	"github.com/tituscheng/pdf/pkg/convert"
 
 	"github.com/spf13/cobra"
 )
