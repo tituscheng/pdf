@@ -10,7 +10,8 @@ Convert documents to PDF from the command line or from your own Go programs.
 - **CSS auto-discovery** — automatically picks up stylesheets next to your source files
 - **Batch conversion** — convert a single file, multiple files, or auto-discover compatible files in a directory
 - **Library + CLI** — use as a standalone tool or import the conversion engine into your own Go project
-- **Bytes-in / bytes-out** — convert Markdown `[]byte` to PDF `[]byte` without touching the filesystem
+- **Bytes-in / bytes-out** — convert Markdown strings or `[]byte` to PDF `[]byte` without an input file path
+- **Inline CSS & SourceDir** — pass stylesheets and asset bases via `Options` for both file and content APIs
 
 ## Installation
 
@@ -91,12 +92,31 @@ When no CSS is explicitly supplied, the converter automatically looks for a styl
 
 ### Explicit CSS
 
-You can bypass auto-discovery by providing a CSS file explicitly:
+You can bypass auto-discovery by providing CSS explicitly:
 
 - **CLI:** `pdf convert document.md --css path/to/style.css`
-- **Library:** pass `&convert.Options{CSSPath: "style.css"}`
+- **Library (file path):** `&convert.Options{CSSPath: "style.css"}`
+- **Library (inline content):** `&convert.Options{CSS: "body { font-family: serif; }"}`
 
-When a CSS path is provided, auto-discovery is skipped entirely.
+**Precedence:** inline `CSS` (non-empty, no trimming) > `CSSPath` > sibling auto-discovery > empty.
+
+`CSSPath` is resolved relative to the process working directory (or absolute). It is **not** rooted at `SourceDir`.
+
+### Content-mode CSS discovery
+
+When converting in-memory content (no input path), named `<file>.css` discovery is not available. If `SourceDir` is set and no `CSS` / `CSSPath` is provided, the converter looks under that directory for:
+
+1. `style.css`
+2. `styles.css`
+3. Exactly one `.css` file in the directory
+
+Without `SourceDir`, content conversion does not discover CSS from the working directory.
+
+### Asset base (`SourceDir`)
+
+`SourceDir` is the directory used to resolve relative images and other resources in the document. It is independent of CSS discovery for path-based conversion: converting `report.md` with `SourceDir: "/assets"` still discovers `report.css` next to the Markdown file.
+
+**Security:** for untrusted Markdown, do not set `SourceDir` to broad roots such as `$HOME` or `/`. Prefer a dedicated assets directory.
 
 ## Library Usage
 
@@ -130,17 +150,54 @@ if err := convert.ConvertFile(ctx, "document.md", "document.pdf", opts); err != 
 }
 ```
 
-### Convert Markdown bytes to PDF bytes
+### Convert in-memory Markdown (string or bytes)
 
 ```go
+import (
+    "context"
+    "log"
+    "os"
+
+    "github.com/tituscheng/pdf/pkg/convert"
+)
+
 ctx := context.Background()
-markdown := []byte("# Hello World")
-pdfBytes, err := convert.ConvertMarkdownToPDF(ctx, markdown, "")
+
+// String source
+pdf, err := convert.ConvertMarkdownString(ctx, "# Hello World", nil)
 if err != nil {
     log.Fatal(err)
 }
-// pdfBytes is a PDF document ready to write or serve
+
+// Bytes with Options (inline CSS + asset base for relative images)
+opts := &convert.Options{
+    CSS:       "body { font-family: Georgia, serif; }",
+    SourceDir: "./assets",
+}
+pdf, err = convert.ConvertMarkdownContent(ctx, []byte("# Hello"), opts)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Format-aware registry entry (extension required; content has no path)
+pdf, err = convert.ConvertContent(ctx, ".md", []byte("# Hello"), opts)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Legacy helper (inline CSS string only; no SourceDir)
+pdf, err = convert.ConvertMarkdownToPDF(ctx, []byte("# Hello"), "")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Write PDF bytes when you need a file
+if err := os.WriteFile("out.pdf", pdf, 0o644); err != nil {
+    log.Fatal(err)
+}
 ```
+
+Prefer `ConvertMarkdownContent` / `ConvertMarkdownString` when you need `SourceDir` or `CSSPath`. `ConvertMarkdownToPDF` remains supported as a thin wrapper.
 
 ### Use the registry
 
@@ -171,12 +228,20 @@ if err := reg.ConvertFile(ctx, "input.md", "output.pdf", opts); err != nil {
 }
 ```
 
-### Check for unsupported formats
+### Check for unsupported formats or content
 
 ```go
 c, err := convert.For(".txt")
 if errors.Is(err, convert.ErrUnsupportedFormat) {
-    // handle unsupported format
+    // no converter registered for this extension
+}
+
+_, err = convert.ConvertContent(ctx, ".myext", body, nil)
+if errors.Is(err, convert.ErrContentUnsupported) {
+    // converter exists but only supports file paths
+}
+if errors.Is(err, convert.ErrUnsupportedFormat) {
+    // no converter registered
 }
 ```
 
@@ -188,8 +253,14 @@ import "github.com/tituscheng/pdf/pkg/convert"
 type MyConverter struct{}
 
 func (m *MyConverter) Convert(ctx context.Context, input, output string, opts *convert.Options) error {
-    // your conversion logic
+    // path-based conversion
     return nil
+}
+
+// Optional: implement ContentConverter for in-memory sources.
+func (m *MyConverter) ConvertContent(ctx context.Context, content []byte, opts *convert.Options) ([]byte, error) {
+    // content-based conversion
+    return nil, nil
 }
 
 func (m *MyConverter) Name() string {
@@ -211,8 +282,8 @@ pdf/
 │   └── convert.go           # convert command implementation
 ├── pkg/
 │   └── convert/
-│       ├── convert.go       # Converter interface, Registry, Options
-│       ├── markdown.go      # Markdown converter
+│       ├── convert.go       # Converter, ContentConverter, Registry, Options
+│       ├── markdown.go      # Markdown path + content converter
 │       └── convert_test.go  # unit tests
 ├── internal/
 │   └── cli/                 # CLI output helpers
